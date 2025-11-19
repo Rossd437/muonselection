@@ -1,0 +1,26 @@
+site_name: CMSE890-602 Project
+
+nav:
+  - Home: index.md
+  - Muon Selection: 
+    - Cluster: cluster.md
+    - Test merge condition: merge_cluster.md
+    - PCA Fit: pcas.md
+    - Length Calculation: length.md
+    - Through-going Check: close_to_two_faces.md
+    - Clean Track: clean_noise_hits.md
+    - Average Distance: average_distance.md
+    - Test if muon: select_muon_track.md
+    - Separate io groups: tpc_separation.md
+    - Create segments: segments.md
+    - Grab segment info: grab_segment_info.md
+    - Run Selection: run.md
+  - About: about.md
+
+theme: readthedocs
+
+plugins:
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [src]
