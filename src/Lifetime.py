@@ -66,14 +66,14 @@ def langau_func(x:np.ndarray, mpv:float, eta:float, sigma:float, A:float) -> np.
     return pylandau.langau(x, mpv, eta, sigma, A)
 
 def chi_squared(params:list, func:Callable[[np.ndarray, float, float], np.ndarray],
-                 x:np.ndarray, y:np.ndarray, uncertainties:np.ndarray):
+                 x:np.ndarray, y:np.ndarray, uncertainties:np.ndarray) -> float:
     """Compute the chi squared.
 
     Get the chi squared for a given function and set of x and y points.
 
     Args:
         params: Fitted parameters
-        function: Function to get y predictions
+        func: Function to get y predictions
         x: x data points.
         y: y data points.
         uncertainties: y value uncertainties
@@ -130,7 +130,7 @@ def langau_fit(hist:np.ndarray, bin_centers:np.ndarray) -> tuple:
     return mpv, eta, sigma, A, mpv_uncertainty, mpv_guess
 
 def langau_lifetime(dNdx:np.ndarray, dqdx:np.ndarray, time_drifted:np.ndarray, time_bins:np.ndarray,
-                     dqdx_bins:np.ndarray, dNdx_bins:np.ndarray, wanted_sim:str, plotting=True) :
+                     dqdx_bins:np.ndarray, dNdx_bins:np.ndarray, wanted_sim:str, plotting=True) -> int:
     """Extract the lifetime.
 
     Use the dQ/dx * dN/dx convolution to extract the lifetime.
