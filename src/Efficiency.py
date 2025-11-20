@@ -106,7 +106,7 @@ def detector_eff(f:h5flow.data.h5flow_data_manager.H5FlowDataManager) -> int:
             vertex = np.array([vert_x, vert_y, vert_z])
 
         if is_point_outside(vertex, x_boundaries, y_boundaries, z_boundaries):
-            intersect_check, length = check_intersection(muon_traj, min_bounds, max_bounds)
+            intersect_check = check_intersection(muon_traj, min_bounds, max_bounds)
             if intersect_check:
                 counts_of_true_rock_muons += 1
 

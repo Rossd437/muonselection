@@ -40,12 +40,12 @@ class MuonSelection:
         """
         self.segment_count = segment_count
         self.track_count = track_count
+        self.length_cut = length_cut
         self.rock_muon_dtype = rock_muon_dtype
         self.segment_dtype = segment_dtype
         self.x_boundaries = x_boundaries
         self.y_boundaries = y_boundaries
         self.z_boundaries = z_boundaries
-        self.length_cut = length_cut
 
     def merge_test(self, main_cluster_direction:np.ndarray, main_cluster_mean:np.ndarray, test_clusters:np.ndarray, average_dist:float) -> list:
         """Merge test clusters to main cluster.
@@ -584,7 +584,7 @@ class MuonSelection:
         f = h5flow.data.H5FlowDataManager(file, 'r')
         
         events = f['charge/events/data']
-
+        print(self.x_boundaries, self.y_boundaries, self.z_boundaries)
         Min_max_detector_bounds = [[min(self.z_boundaries),min(self.y_boundaries),min(self.x_boundaries)],
                                     [max(self.z_boundaries), max(self.y_boundaries), max(self.x_boundaries)]]
         for event in range(events.size):
@@ -686,14 +686,14 @@ if __name__ == '__main__':
     y_boundaries = np.array([-42-19.8543, -42+103.8543])
     z_boundaries = np.array([-64.3163,  -2.6837, 2.6837, 64.3163]) 
 
-    selection = MuonSelection(segment_count, track_count, rock_muon_dtype, segment_dtype,
-                              x_boundaries, y_boundaries, z_boundaries, length_cut)
+    selection = MuonSelection(segment_count, track_count, length_cut, rock_muon_dtype, segment_dtype,
+                              x_boundaries, y_boundaries, z_boundaries)
     file = sys.argv[1]
     hdf5_file_name = file.split('/')[-1]
     wanted_sim = hdf5_file_name.split('_')[0]
 
     f = h5flow.data.H5FlowDataManager(file, 'r')
-    print(type(f))
+    
     tracks, segments, hits = selection.run(file)
     print('Done w/ selection starting purity calc')
 
