@@ -1,26 +1,26 @@
 import numpy as np
-
 import h5flow
-
-from h5flow.data import dereference
-
-from scipy.optimize import curve_fit
-
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-
 import warnings
-
 from scipy.spatial.distance import cdist
+import sys
 
 class MuonSelection:
-    def __init__(self, segment_count, track_count):
+    def __init__(self, segment_count, track_count, rock_muon_dtype, segment_dtype,
+                 x_boundaries, y_boundaries, z_boundaries, length_cut):
         self.segment_count = segment_count
         self.track_count = track_count
+        self.rock_muon_dtype = rock_muon_dtype
+        self.segment_dtype = segment_dtype
+        self.x_boundaries = x_boundaries
+        self.y_boundaries = y_boundaries
+        self.z_boundaries = z_boundaries
+        self.length_cut = length_cut
 
-    def merge_test(self, main_cluster_direction:np.ndarray, main_cluster_mean:np.ndarray, test_clusters:np.ndarray, average_dist:float) -> bool:
+    def merge_test(self, main_cluster_direction:np.ndarray, main_cluster_mean:np.ndarray, test_clusters:np.ndarray, average_dist:float) -> list:
         """Merge test clusters to main cluster.
+
         Merge test cluster with the main cluster if the average distance of the test \
         cluster hits fall below the average_dist threshold.
 
@@ -47,6 +47,7 @@ class MuonSelection:
 
     def cluster(self, PromptHits_ev:np.ndarray, average_dist:float) -> list:
         """Cluster an event of hits.
+
         Take in either calib_prompt_hits or calib_final_hits and clusters them using DBSCAN.
 
         Args:
@@ -154,8 +155,9 @@ class MuonSelection:
             return indicies_of_clusters
         
     #@staticmethod
-    def PCAs(self, hit_positions:np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def PCAs(self, hit_positions:np.ndarray) -> tuple:
         """Compute the PCA.
+
         Compute the PCA for a cluster of hits.
          
         Args:
@@ -186,7 +188,7 @@ class MuonSelection:
         return  explained_var, normalized_direction_vector, mean
 
     #@staticmethod
-    def length(self, hits:np.ndarray) -> float:
+    def length(self, hits:np.ndarray) -> tuple:
         """Get length of cluster.
 
         Get the length of a particular cluster.
@@ -201,8 +203,17 @@ class MuonSelection:
         hit_positions = np.column_stack((hits['x'], hits['y'], hits['z']))
         
         hdist = cdist(hit_positions, hit_positions)
+         
+        max_value_index = np.argmax(hdist)
+        # Convert flattened index to row and column indices
+        max_value_row = max_value_index // hdist.shape[1]
+        max_value_col = max_value_index % hdist.shape[1]
         
-        return np.max(hdist)
+        indices = [max_value_row, max_value_col]
+        
+        start_hit, end_hit = hit_positions[np.min(indices)], hit_positions[np.max(indices)]
+        
+        return np.max(hdist), start_hit, end_hit
 
     def close_to_two_faces(self, boundaries:np.ndarray, hits:np.ndarray) -> bool:
         """Test if a track goes through the detector.
@@ -320,7 +331,7 @@ class MuonSelection:
             
             avg_distance = self.average_distance(hit_positions[mask], hits_mean_position, direction_vector)
             
-            l_track = self.length(filtered_hits)
+            l_track, start_point, end_point = self.length(filtered_hits)
             if (avg_distance <= 1.5) & (l_track >= L_cut):
 
                 penetrated = self.close_to_two_faces(faces_of_detector, filtered_hits)
@@ -332,7 +343,7 @@ class MuonSelection:
             return np.array(muon_hits), l_track, start_point, end_point, explained_var, direction_vector
 
     #@staticmethod
-    def angle(self, direction_vector:np.ndarray) -> tuple[float, float, float]:
+    def angle(self, direction_vector:np.ndarray) -> tuple:
         """Get angle of the muon.
         
         Args:
@@ -527,59 +538,134 @@ class MuonSelection:
             else:
                 return None
 
-    def run(self, file:str) -> np.ndarray:
+    def run(self, file:str) -> tuple:
         """Run the muon selection.
 
         Args:
+            file: hdf5 file
 
         Returns:
+            Selected muon tracks of file their segments, and their hits
+
 
         """
+        muon_tracks = []
+        muon_segments = []
+        muon_hits = []
+        f = h5flow.data.H5FlowDataManager(file, 'r')
+        
+        events = f['charge/events/data']
+        Min_max_detector_bounds = [[min(self.z_boundaries),min(self.y_boundaries),min(self.x_boundaries)],
+                                    [max(self.z_boundaries), max(self.y_boundaries), max(self.x_boundaries)]]
+        for event in range(events.size):
+            PromptHits_ev = f['charge/events', 'charge/calib_prompt_hits', event][0].data
+ 
+            PromptHits_ev_positions = np.column_stack((PromptHits_ev['x'], PromptHits_ev['y'], PromptHits_ev['z']))
             
-        Min_max_detector_bounds = resources['Geometry'].lar_detector_bounds 
-        PromptHits_ev = cache[self.PromptHits_dset_name][0]
-        
+            nan_indices = np.unique(np.argwhere(np.isnan(PromptHits_ev_positions))[:,0]) 
+            
+            if len(nan_indices) >   0:
+                PromptHits_ev = np.delete(PromptHits_ev,nan_indices, axis = 0)
 
-        PromptHits_ev_positions = np.column_stack((PromptHits_ev['x'], PromptHits_ev['y'], PromptHits_ev['z']))
-        
-        nan_indices = np.unique(np.argwhere(np.isnan(PromptHits_ev_positions))[:,0]) 
-        
-        if len(nan_indices) >   0:
-            PromptHits_ev = np.delete(PromptHits_ev,nan_indices, axis = 0)
+            unique_points, counts = np.unique(PromptHits_ev_positions, axis=0, return_counts=True)
 
-        unique_points, counts = np.unique(PromptHits_ev_positions, axis=0, return_counts=True)
+            for unique_point, count in zip(unique_points, counts):
 
-        for unique_point, count in zip(unique_points, counts):
+                if count > 1000:
+                    mask = np.all(PromptHits_ev_positions != unique_point, axis =1)
 
-            if count > 1000:
-                mask = np.all(PromptHits_ev_positions != unique_point, axis =1)
-
-                PromptHits_ev = PromptHits_ev[mask]
-                
-        if len(PromptHits_ev) >= 100:
-            hit_indices = self.cluster(PromptHits_ev, 2)
-        
-        if 'hit_indices' in locals():
-            for indices in hit_indices:
-                if len(indices) > 10:
-                    hits = PromptHits_ev[indices]
-
-                    if len(hits) < 1:
-                        continue
-                    muon_track,length_of_track, start_point, end_point, explained_var, direction_vector = self.select_muon_track(hits,Min_max_detector_bounds)
+                    PromptHits_ev = PromptHits_ev[mask]
                     
-                    if len(muon_track) != 0:
-                        #Loop through tracks and changes the DBSCAN cluster_id to a given track number
-                        self.track_count += 1 
-                        track_number = self.track_count
+            if len(PromptHits_ev) >= 100:
+                hit_indices = self.cluster(PromptHits_ev, 2)
+
+                for indices in hit_indices:
+                    if len(indices) > 10:
+                       
+                        hits = PromptHits_ev[indices]
+
+                        if len(hits) < 1:
+                            continue
+                        muon_track,length_of_track, start_point, end_point, explained_var, direction_vector = self.select_muon_track(hits,Min_max_detector_bounds)
                         
-                        #Get angle of track
-                        theta_xz, theta_yz,theta_z = self.angle(direction_vector)
-                        
-                        #Fill track info
-                        track_info = [event_id,track_number,length_of_track, start_point[0],start_point[1],start_point[2], end_point[0],end_point[1],end_point[2], explained_var, theta_xz, theta_yz, theta_z]
-                        
-                        track_info = np.array([tuple(track_info)], dtype = self.rock_muon_track_dtype)
-                        #Get segments
-                        segments_list, segment_hit_ref, segment_track_ref = self.segments(muon_track)
-                        
+                        if len(muon_track) != 0:
+                            muon_hits.append(hits)
+                            #Loop through tracks and changes the DBSCAN cluster_id to a given track number
+                            self.track_count += 1 
+                            track_number = self.track_count
+                            
+                            #Get angle of track
+                            theta_xz, theta_yz,theta_z = self.angle(direction_vector)
+                            
+                            #Fill track info
+                            track_info = [event, track_number,length_of_track, start_point[0],start_point[1],start_point[2], end_point[0],end_point[1],end_point[2], explained_var, theta_xz, theta_yz, theta_z]
+                            
+                            track_info = np.array([tuple(track_info)], dtype = self.rock_muon_dtype)
+                            muon_tracks.append(track_info)
+
+                            #Get segments
+                            segments_list, segment_hit_ref, segment_track_ref = self.segments(muon_track)
+                            segments_array = np.array([tuple(segment) for segment in segments_list], dtype = self.segment_dtype)
+                            muon_segments.append(segments_array)
+                            
+        return np.concatenate(muon_tracks), np.concatenate(muon_segments), muon_hits
+    
+
+
+if __name__ == '__main__':
+    segment_count = 0
+    track_count = 0
+    length_cut = 100
+    
+    rock_muon_dtype = np.dtype([
+        ('event_id','i4'),
+        ('rock_muon_id', 'i4'),
+        ('length','f8'),
+        ('x_start', 'f8'),
+        ('y_start','f8'),
+        ('z_start', 'f8'),
+        ('x_end','f8'),
+        ('y_end', 'f8'),
+        ('z_end', 'f8'),
+        ('exp_var', 'f8'),
+        ('theta_xz','f8'),
+        ('theta_yz', 'f8'),
+        ('theta_z','f8')
+        ])
+
+    segment_dtype =  np.dtype([
+        ('rock_segment_id', 'i4'),
+        ('x_start', 'f8'),
+        ('y_start','f8'),
+        ('z_start','f8'),
+        ('dE', 'f8'),
+        ('x_end', 'f8'),
+        ('y_end','f8'),
+        ('z_end', 'f8'),
+        ('dQ','f8'),
+        ('dN', 'i4'),
+        ('dx','f8'),
+        ('x_mid','f8'),
+        ('y_mid','f8'),
+        ('z_mid','f8'),
+        ('t','f8'),
+        ('io_group', 'i4')
+    ])
+
+    x_boundaries = np.array([-63.931, -3.069, 3.069, 63.931])
+    y_boundaries = np.array([-42-19.8543, -42+103.8543])
+    z_boundaries = np.array([-64.3163,  -2.6837, 2.6837, 64.3163]) 
+
+    selection = MuonSelection(segment_count, track_count, rock_muon_dtype, segment_dtype,
+                              x_boundaries, y_boundaries, z_boundaries, length_cut)
+    file = sys.argv[1]
+
+    tracks, segments, hits = selection.run(file)
+
+    hdf5_file_name = file.split('/')[-1]
+    
+    save_tracks_name = hdf5_file_name + '.tracks.npy'
+    save_segments_name = hdf5_file_name + '.segments.npy'
+
+    np.save(save_tracks_name, tracks)
+    np.save(save_segments_name, segments)

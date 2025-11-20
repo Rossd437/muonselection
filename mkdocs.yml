@@ -15,6 +15,13 @@ nav:
     - Create segments: segments.md
     - Grab segment info: grab_segment_info.md
     - Run Selection: run.md
+  - Electron Lifetime:
+    - Convolution: convolution.md
+    - Lifetime Function: lifetimefunc.md
+    - Landau Gaussian Convolution Function: langaufunc.md
+    - Chi Squared: chisquared.md
+    - Landau Gaussian Convolution fit: langaufit.md
+    - Lifetime Extraction: lifetimefit.md
   - About: about.md
 
 theme: readthedocs

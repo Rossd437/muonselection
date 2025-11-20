@@ -9,152 +9,80 @@ import mplhep as hep
 
 class Purity:
 
-    def __init__(self, filelist, nFiles, hits_dset_name, x_boundaries, y_boundaries, z_boundaries):
-        
-        #Initialization of attributes for Objects
-        
-        self.filelist = filelist
-        self.nFiles = nFiles
-        self.hits_dset_name = hits_dset_name
-
-        self.x_boundaries = x_boundaries
-        self.y_boundaries = y_boundaries
-        self.z_boundaries = z_boundaries
-    '''
-    
-    Methods that can be called by a object of this class
-    
-    '''
-    
-    '''
-
-    Purity Methods
-    
-    '''
-    def back_track_hits(self):
+    def back_track_hits(self, f, hits_array:np.ndarray):
         makeup_of_selection = []
         energy_ratio = []
-        purity_of_muon_segments = []
-        segs_of_true_muon_tracks = []
-
         
-        for file in self.filelist:
+        hitss_bt = f['mc_truth/'+'calib_prompt_hits'+'_backtrack/data']
 
-            try:
-                # Load data sets
-                f = h5flow.data.H5FlowDataManager(file, 'r')
+        segment_map = {seg['segment_id']: seg for seg in segments}
+        traj_map = {traj['file_traj_id']: traj for traj in trajectories}
 
-                segments = f['mc_truth/segments/data']
-                trajectories = f['mc_truth/trajectories/data']
-                dset_hits = f['charge/'+self.hits_dset_name+'/data']
-                hitss_bt = f['mc_truth/'+self.hits_dset_name[:-1]+'_backtrack/data']
+        # Loop through the tracks
+        for hits in hits_array:
+            track_makeup = {}
 
-                segment_map = {seg['segment_id']: seg for seg in segments}
-                traj_map = {traj['file_traj_id']: traj for traj in trajectories}
-                rock_tracks = f['analysis/rock_muon_tracks/data']
+            trajs_of_track = []
 
-                track2hits = dereference(
-                    rock_tracks['rock_muon_id'],     # indices of A to load references for, shape: (n,)
-                    f['/analysis/rock_muon_tracks/ref/charge/calib_prompt_hits/ref'],  # references to use, shape: (L,)
-                    f['/charge/calib_prompt_hits/data'],
-                    ref_direction=(0,1)  # dataset to load, shape: (M,)
-                )
+            total_charge = np.sum(hits['Q'])
+            total_energy = np.sum(hits['E'])
 
-                # Loop through the tracks
-                for hits_of_track in track2hits:
-                    track_makeup = {}
+            hit_ref = hits['id']
+            hits_bt = hitss_bt[hit_ref] 
 
-                    trajs_of_track = []
-
-                    hits = np.array([tup for tup in hits_of_track.data if not all(np.all(elem == 0) for elem in tup)], dtype=hits_of_track.dtype)
-
-                    total_charge = np.sum(hits['Q'])
-                    total_energy = np.sum(hits['E'])
-
-                    hit_ref = hits['id']
-                    hits_bt = hitss_bt[hit_ref] 
-
-                    # Check if hit['id'] matches index in dset_hits_name
-                    indices = np.where(np.isin(dset_hits['id'], hits['id']))[0]
-
-                    for i in range(len(indices)):
-                        if indices[i] != hits['id'][i]:
-                            print(f'WARNING: rock_muon hit id not the same as {hits_dset_name} index')
-                    true_energy = []
-                    # Plot all of the backtracked segment positions
-                    for hit in hits_bt:
-                        for cont in range(len(hit['fraction'])):
-                            if hit['fraction'][cont] > 0.0001:
-                                seg_id = hit['segment_ids'][cont]
-                                seg = segment_map.get(seg_id)
-                                
-                                # Append trajectory information to the list
-                                trajs_of_track.append([
-                                    seg['file_traj_id'],  # File trajectory ID
-                                    seg['n_electrons'],  # Number of electrons
-                                    hit['fraction'][cont],  # Fraction associated with the hit
-                                    seg_id
-                                ])
-                                
-                                possible_true_energy = hit['fraction'][cont] * segments[seg_id]['n_electrons']
-                                true_energy.append(possible_true_energy)
-                                
-                                if not seg['segment_id'] == seg_id:
-                                    print(f'WARNING: segment id not the same as segment index!')
-                    
-                    traj_arr = np.array(trajs_of_track)
-                    #print(traj_arr)
-                    unique_trajs = np.unique(traj_arr[:, 0])
-
-                    for i in range(len(unique_trajs)):
-                        traj = unique_trajs[i]
-                        mask = traj_arr[:,0] == traj
-                        trajss = traj_arr[mask]
-                        #print(trajss)
-                        #Get makeup of track
-                        wanted_traj = traj_map.get(traj)
-                        #print(wanted_traj)
-                        wanted_segments = np.array([segment_map.get(seg_id) for seg_id in trajss[:,-1]], dtype = segments.dtype)
-                        #print(wanted_segments)
-                        pdg_of_traj = wanted_traj['pdg_id'] #trajectories[index]['pdg_id'][0]
-                        E_of_traj = sum(wanted_segments['dE'])
-                        #E_of_traj = abs(trajectories[index]['E_end'] - trajectories[index]['E_start'])[0]
+            true_energy = []
+            # Plot all of the backtracked segment positions
+            for hit in hits_bt:
+                for cont in range(len(hit['fraction'])):
+                    if hit['fraction'][cont] > 0.0001:
+                        seg_id = hit['segment_ids'][cont]
+                        seg = segment_map.get(seg_id)
                         
-                        if pdg_of_traj not in track_makeup.keys():
-                            track_makeup[f"{pdg_of_traj}"] = E_of_traj
-                        else:
-                            track_makeup[f"{pdg_of_traj}"] = track_makeup[f"{pdg_of_traj}"] + E_of_traj
-                    
-                    muon_key = [13,-13]
-                    max_key = int(max(track_makeup, key = track_makeup.get))
-                    
-                    if max_key in muon_key:
-                        #Get purity of segments
-                        all_segs_of_track = np.array([segment_map.get(seg_id) for seg_id in traj_arr[:,-1]], dtype = segments.dtype)#[np.unique(np.array(traj_arr[:,-1], dtype = int))]
-                        mask_muon_segments = (all_segs_of_track['pdg_id'] == 13) | (all_segs_of_track['pdg_id'] == -13)
-                        mask_electron_segments = (all_segs_of_track['pdg_id'] == 11) | (all_segs_of_track['pdg_id'] == -11)
-                        muon_segments = all_segs_of_track[mask_muon_segments]
-                        purity_segments = len(muon_segments)/len(all_segs_of_track)
-                        purity_of_muon_segments.append(purity_segments) 
-                        segs_of_true_muon_tracks.append(all_segs_of_track)
-                    
-                    all_segs_of_track = np.array([segment_map.get(seg_id) for seg_id in traj_arr[:,-1]], dtype = segments.dtype)#[np.unique(np.array(traj_arr[:,-1], dtype = int))]
-                    
-                    total_E_of_track = sum(all_segs_of_track['dE'])
-                    
-                    tot_E_of_track = sum(track_makeup.values())
-                    
-                    for key in track_makeup.keys():
-                        track_makeup[f'{key}'] = round(track_makeup[f'{key}']/tot_E_of_track,6)
-                    
-                    recon_true_E_ratio = total_energy/tot_E_of_track
-                    makeup_of_selection.append(track_makeup)
-                    
-                    energy_ratio.append(recon_true_E_ratio)
-            except:
-                continue
+                        # Append trajectory information to the list
+                        trajs_of_track.append([
+                            seg['file_traj_id'],  # File trajectory ID
+                            seg['n_electrons'],  # Number of electrons
+                            hit['fraction'][cont],  # Fraction associated with the hit
+                            seg_id
+                        ])
+                        
+                        possible_true_energy = hit['fraction'][cont] * segments[seg_id]['n_electrons']
+                        true_energy.append(possible_true_energy)
+                        
+                        if not seg['segment_id'] == seg_id:
+                            print(f'WARNING: segment id not the same as segment index!')
+            
+            traj_arr = np.array(trajs_of_track)
+            #print(traj_arr)
+            unique_trajs = np.unique(traj_arr[:, 0])
 
-        return makeup_of_selection, np.array(energy_ratio), purity_of_muon_segments, np.concatenate(segs_of_true_muon_tracks)
+            for i in range(len(unique_trajs)):
+                traj = unique_trajs[i]
+                mask = traj_arr[:,0] == traj
+                trajss = traj_arr[mask]
+                #print(trajss)
+                #Get makeup of track
+                wanted_traj = traj_map.get(traj)
+                #print(wanted_traj)
+                wanted_segments = np.array([segment_map.get(seg_id) for seg_id in trajss[:,-1]], dtype = segments.dtype)
+                #print(wanted_segments)
+                pdg_of_traj = wanted_traj['pdg_id'] #trajectories[index]['pdg_id'][0]
+                E_of_traj = sum(wanted_segments['dE'])
+                #E_of_traj = abs(trajectories[index]['E_end'] - trajectories[index]['E_start'])[0]
+                
+                if pdg_of_traj not in track_makeup.keys():
+                    track_makeup[f"{pdg_of_traj}"] = E_of_traj
+                else:
+                    track_makeup[f"{pdg_of_traj}"] = track_makeup[f"{pdg_of_traj}"] + E_of_traj
+            
+            tot_E_of_track = sum(track_makeup.values())
+            
+            for key in track_makeup.keys():
+                track_makeup[f'{key}'] = round(track_makeup[f'{key}']/tot_E_of_track,6)
+            
+            makeup_of_selection.append(track_makeup)
+
+        return makeup_of_selection
 
     def amount_of_particle(self,pdg, pdgs_of_selection):
         
