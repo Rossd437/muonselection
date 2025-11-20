@@ -37,4 +37,19 @@ nav:
     - Chi Squared: chisquared.md
     - Landau Gaussian Convolution fit: langaufit.md
     - Lifetime Extraction: lifetimefit.md
+  - Purity:
+    - Purity Overview: purity.md
+    - Purity Initialization: purity_init.md
+    - Grab Backtrack Information: grab_bt.md
+    - Get Trajectory Makeup: get_traj_makeup.md
+    - Get PDG key: get_max_pdg.md
+    - Measure Purity: purity_measurement.md
+    - Random Colors: generate_colors.md
+    - Plot Purity: make_plot.md
+    - Produce Purity and Plot: purity_and_plot.md
+  - Efficiency:
+    - Check Point Position: point_outside.md
+    - Check Intersection: intersection.md
+    - Amount Of True Muons: eff.md
+
   - About: about.md
