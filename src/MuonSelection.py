@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA
 import warnings
 from scipy.spatial.distance import cdist
 import sys
+import Purity
 
 class MuonSelection:
     def __init__(self, segment_count, track_count, rock_muon_dtype, segment_dtype,
@@ -659,13 +660,22 @@ if __name__ == '__main__':
     selection = MuonSelection(segment_count, track_count, rock_muon_dtype, segment_dtype,
                               x_boundaries, y_boundaries, z_boundaries, length_cut)
     file = sys.argv[1]
+    hdf5_file_name = file.split('/')[-1]
+    wanted_sim = hdf5_file_name.split('_')[0]
+
+    f = h5flow.data.H5FlowDataManager(file, 'r')
 
     tracks, segments, hits = selection.run(file)
+    print('Done w/ selection starting purity calc')
 
-    hdf5_file_name = file.split('/')[-1]
-    
     save_tracks_name = hdf5_file_name + '.tracks.npy'
     save_segments_name = hdf5_file_name + '.segments.npy'
 
     np.save(save_tracks_name, tracks)
     np.save(save_segments_name, segments)
+
+        
+    p = Purity.Purity(f, wanted_sim)
+
+    particle_stack = p.loop(hits)
+    
