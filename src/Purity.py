@@ -1,210 +1,273 @@
-#imports 
+"""This Python module contains function to help calculate purity."""
 
 import numpy as np
 from h5flow.data import dereference
 import h5flow
 import matplotlib.pyplot as plt
-import glob
-import mplhep as hep
+import random
+import Efficiency
 
 class Purity:
+    """Purity of the muon selection.
 
-    def back_track_hits(self, f, hits_array:np.ndarray):
-        makeup_of_selection = []
-        energy_ratio = []
+    This class will have the functionality to produce the purity of the muon selection and make the purity plot.
+
+    Attributes:
+        f: H5FlowDataManager for hdf5 file.
+        wanted_sim: Simulation version
+    """
+    def __init__(self, f:h5flow.data.h5flow_data_manager.H5FlowDataManager, wanted_sim:str):
+        """Initializes a new Purity Instance.
+
+        Args:
+            f: H5FlowDataManager for hdf5 file.
+            wanted_sim: Simulation version.
+        """
+        self.f = f
+        self.wanted_sim = wanted_sim
+
+    def grab_bt(self, hits: np.ndarray, bt_info:np.ndarray) ->np.ndarray:
+        """Return backtrack info for selected track.
         
-        hitss_bt = f['mc_truth/'+'calib_prompt_hits'+'_backtrack/data']
+        Args:
+            hits: Hits of muon track.
+            bt_info: Backtrack information of prompt hits.
 
-        segment_map = {seg['segment_id']: seg for seg in segments}
-        traj_map = {traj['file_traj_id']: traj for traj in trajectories}
+        Returns:
+            Backtrack information for hits of muon track.
+        """
+        hits_bt = bt_info[hits['id']]
+        
+        return hits_bt
 
-        # Loop through the tracks
-        for hits in hits_array:
-            track_makeup = {}
+    def get_traj_makeup(self, segment_map:dict, traj_map:dict, bt_info:np.ndarray, seg_dtype:np.dtypes.VoidDType) -> dict:
+        """Get true trajectory makeup.
 
-            trajs_of_track = []
+        Get all of the true trajectory pdg codes and the percent makeup for each pdg code that \
+        makes up the selected track.
 
-            total_charge = np.sum(hits['Q'])
-            total_energy = np.sum(hits['E'])
+        Args:
+            segment_map: Dictionary map of the true segments.
+            traj_map: Dictionary map of the true trajectories.
+            bt_info: Backtrack information for prompt hits.
+            seg_dtype:dtype of the true segments.
 
-            hit_ref = hits['id']
-            hits_bt = hitss_bt[hit_ref] 
+        Returns:
+            Dictionary of the true trajectory makeup of the selected track.
+        """
+        track_makeup = {}
+        trajs_of_track = []
+        
+        # Plot all of the backtracked segment positions
+        for hit in bt_info:
+            for cont in range(len(hit['fraction'])):
+                if hit['fraction'][cont] > 0.0001:
+                    seg_id = hit['segment_ids'][cont]
+                    seg = segment_map.get(seg_id)
+                    
+                    # Append trajectory information to the list
+                    trajs_of_track.append([
+                        seg['file_traj_id'],  # File trajectory ID
+                        seg['n_electrons'],  # Number of electrons
+                        hit['fraction'][cont],  # Fraction associated with the hit
+                        seg_id
+                    ])
 
-            true_energy = []
-            # Plot all of the backtracked segment positions
-            for hit in hits_bt:
-                for cont in range(len(hit['fraction'])):
-                    if hit['fraction'][cont] > 0.0001:
-                        seg_id = hit['segment_ids'][cont]
-                        seg = segment_map.get(seg_id)
-                        
-                        # Append trajectory information to the list
-                        trajs_of_track.append([
-                            seg['file_traj_id'],  # File trajectory ID
-                            seg['n_electrons'],  # Number of electrons
-                            hit['fraction'][cont],  # Fraction associated with the hit
-                            seg_id
-                        ])
-                        
-                        possible_true_energy = hit['fraction'][cont] * segments[seg_id]['n_electrons']
-                        true_energy.append(possible_true_energy)
-                        
-                        if not seg['segment_id'] == seg_id:
-                            print(f'WARNING: segment id not the same as segment index!')
+        traj_arr = np.array(trajs_of_track)
+        
+        unique_trajs = np.unique(traj_arr[:, 0])
+        
+        for i in range(len(unique_trajs)):
+            traj = unique_trajs[i]
+            mask = traj_arr[:,0] == traj
+            trajss = traj_arr[mask]
             
-            traj_arr = np.array(trajs_of_track)
-            #print(traj_arr)
-            unique_trajs = np.unique(traj_arr[:, 0])
+            #Get makeup of track
+            wanted_traj = traj_map.get(traj)
 
-            for i in range(len(unique_trajs)):
-                traj = unique_trajs[i]
-                mask = traj_arr[:,0] == traj
-                trajss = traj_arr[mask]
-                #print(trajss)
-                #Get makeup of track
-                wanted_traj = traj_map.get(traj)
-                #print(wanted_traj)
-                wanted_segments = np.array([segment_map.get(seg_id) for seg_id in trajss[:,-1]], dtype = segments.dtype)
-                #print(wanted_segments)
-                pdg_of_traj = wanted_traj['pdg_id'] #trajectories[index]['pdg_id'][0]
-                E_of_traj = sum(wanted_segments['dE'])
-                #E_of_traj = abs(trajectories[index]['E_end'] - trajectories[index]['E_start'])[0]
-                
-                if pdg_of_traj not in track_makeup.keys():
-                    track_makeup[f"{pdg_of_traj}"] = E_of_traj
-                else:
-                    track_makeup[f"{pdg_of_traj}"] = track_makeup[f"{pdg_of_traj}"] + E_of_traj
+            wanted_segments = np.array([segment_map.get(seg_id) for seg_id in trajss[:,-1]], dtype = seg_dtype)
+
+            pdg_of_traj = wanted_traj['pdg_id']
+            E_of_traj = sum(wanted_segments['dE'])
             
-            tot_E_of_track = sum(track_makeup.values())
-            
-            for key in track_makeup.keys():
-                track_makeup[f'{key}'] = round(track_makeup[f'{key}']/tot_E_of_track,6)
-            
-            makeup_of_selection.append(track_makeup)
-
-        return makeup_of_selection
-
-    def amount_of_particle(self,pdg, pdgs_of_selection):
-        
-        mask = pdgs_of_selection == pdg
-        
-        trajs_with_pdg = [ptype for ptype in pdgs_of_selection if ptype == pdg or ptype == pdg]
-        
-        amount = len(trajs_with_pdg)
-        
-        percent = round((amount/len(pdgs_of_selection)) * 100, 2)
-        
-        return amount, percent
-
-    '''
-    
-    Efficiency related methods
-
-    '''
-
-    def is_point_outside(self, point, x_boundaries, y_boundaries, z_boundaries):
-
-        x, y, z = point[0], point[1], point[2]
-        
-        xmin, xmax, ymin, ymax, zmin, zmax = x_boundaries.min(), x_boundaries.max(), y_boundaries.min(), y_boundaries.max(), z_boundaries.min(), z_boundaries.max()
-        
-        return x < xmin or x > xmax or y < ymin or y > ymax or z < zmin or z > zmax
-    
-    def detector_eff(self):
-        
-        min_bounds = [min(self.x_boundaries), min(self.y_boundaries), min(self.z_boundaries)]
-        max_bounds = [max(self.x_boundaries), max(self.y_boundaries), max(self.z_boundaries)]
-        A = 'mc_truth/interactions'
-        B = 'mc_truth/trajectories'
-        #B = 'mc_truth/segments'
-        C= 'charge/packets'
-        D = 'charge/calib_prompt_hits'
-
-        counts_of_true_rock_muons = 0
-        
-        n_rock_tracks = []
-        
-        for file in self.filelist[:self.nFiles]:
-            try:
-                f = h5flow.data.H5FlowDataManager(file, 'r')
-
-                interactions = f['mc_truth/interactions/data']
-                
-                trajs = f['mc_truth/trajectories/data']
-                rock_tracks = f['analysis/rock_muon_tracks/data']
-
-                tracks = np.unique(rock_tracks['rock_muon_id'])
-                muons_key = [13, -13]
-                nu_keys = [14, -14]
-
-                muon_trajs = [traj for traj in trajs if traj['pdg_id'] in muons_key]
-            
-                n_rock_tracks.append(len(tracks))
-            
-                for index, interaction in enumerate(interactions):
-
-                    vertex = [interaction['vertex'][0], interaction['vertex'][1], interaction['vertex'][2]]
-                
-                    pdg = interaction['lep_pdg']
-                    nu_pdg = interaction['nu_pdg']
-
-                    if  self.is_point_outside(vertex, x_boundaries, y_boundaries, z_boundaries) & (pdg in muons_key) & (nu_pdg in nu_keys):
-                        a2b_ref = dereference(
-                        index,     # indices of A to load references for, shape: (n,)
-                        f['/{}/ref/{}/ref'.format(A,B)],  # references to use, shape: (L,)
-                        f['/{}/data'.format(B)],       # dataset to load, shape: (M,)
-                        region = f['/{}/ref/{}/ref_region'.format(A,B)], # lookup regions in references, shape: (N,)
-                        indices_only = True,
-                        ref_direction = (0,1)
-                        )
-                        
-                        trajs_of_interactions = (trajs[a2b_ref[0]])
-
-                        mask_muon = abs(trajs_of_interactions['pdg_id']) == 13 
-
-                        muon_traj_of_interaction = trajs_of_interactions[mask_muon]
-
-                        start_muon, end_muon = muon_traj_of_interaction['xyz_start'][0], muon_traj_of_interaction['xyz_end'][0]
-
-                        if self.intersects_aabb(start_muon, end_muon, min_bounds,max_bounds):
-                            counts_of_true_rock_muons += 1
-        
-            except Exception as e:
-                print(e)
-                continue
-        print(counts_of_true_rock_muons)
-        return sum(n_rock_tracks)/counts_of_true_rock_muons
-
-
-    def intersects_aabb(self, p1, p2, box_min, box_max):
-        p1 = np.array(p1, dtype=float)
-        p2 = np.array(p2, dtype=float)
-        direction = p2 - p1
-        tmin, tmax = 0.0, 1.0
-
-        for i in range(3):  # x, y, z
-            if direction[i] != 0:
-                t1 = (box_min[i] - p1[i]) / direction[i]
-                t2 = (box_max[i] - p1[i]) / direction[i]
-                t1, t2 = min(t1, t2), max(t1, t2)
-                tmin = max(tmin, t1)
-                tmax = min(tmax, t2)
-                if tmax < tmin:
-                    return False
+            if pdg_of_traj not in track_makeup.keys():
+                track_makeup[f"{pdg_of_traj}"] = E_of_traj
             else:
-                if p1[i] < box_min[i] or p1[i] > box_max[i]:
-                    return False
-
-        return tmin > 0.0 and tmax < 1.0 and tmin < tmax
+                track_makeup[f"{pdg_of_traj}"] = track_makeup[f"{pdg_of_traj}"] + E_of_traj
     
-x_boundaries = np.array([-63.931, -3.069, 3.069, 63.931])
-y_boundaries = np.array([-42-19.8543, -42+103.8543]) 
-z_boundaries = np.array([-64.3163,  -2.6837, 2.6837, 64.3163])
+        return track_makeup
 
-filelist = glob.glob(f"/global/cfs/cdirs/dune/users/demaross/MiniRun6.4/*.hdf5")
+    def get_max_pdg(self, makeup:dict) -> int:
+        """Get true pdg code of selected track.
+        
+        Args:
+            makeup: true trajectory makeup
 
-Purity_Eff = Purity(filelist, nFiles=2, hits_dset_name='calib_prompt_hits', x_boundaries=x_boundaries, y_boundaries=y_boundaries, z_boundaries=z_boundaries)
+        Returns:
+            True pdg code of selected track
+        """
+        return max(makeup, key=makeup.get)
 
-eff = Purity_Eff.detector_eff()
+    def purity_measurement(self, pdg_makeup:dict) -> float:
+        """Get purity measurement.
+        
+        Get the purity measurement of the selected file(s).
 
-print(eff)
+        Args:
+            pdg_makeup: true pdgs for each selected track
+
+        Returns:
+            The purity of the pdg makeup
+        """
+        total_amount_tracks = sum(pdg_makeup.values())
+        
+        amount_of_muons = pdg_makeup['13'] \
+                        + pdg_makeup['-13']
+        
+        return round(amount_of_muons/total_amount_tracks, 3) * 100
+
+    def generate_random_colors(self, n_colors:int) -> list:
+        """Generate random colors.
+        
+        Args:
+            n_colors: Number of colors wanted.
+
+        Returns:
+            N random colors.
+        """
+        random_colors = [(random.random(), random.random(), random.random(), .9)
+                        for n in range(n_colors)]
+        return random_colors
+
+    def make_purity_plot(self, sorted_pdg_makeup:dict, wanted_sim:str, purity:float, eff:float) -> int:
+        """Make Purity Plot.
+        
+        Take in the pdg_makeup of the selection and produce a purity plots.
+
+        Args:
+            sorted_pdg_makeup: Sorted dictionary of the true pdg makeup (by length).
+            wanted_sim: Simulation the selection ran on.
+            purity: Purity of the selection
+            eff: Efficiency of the selection.
+        
+        Returns:
+            Saved image of purity
+        """
+
+        n_colors = len(sorted_pdg_makeup)
+
+        colors = self.generate_random_colors(n_colors)
+
+        fig, ax = plt.subplots()
+
+        #Set black spines
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+
+        x = list(sorted_pdg_makeup.keys())
+        y = list(sorted_pdg_makeup.values())
+        labels = [f"{x_value}: {y_value}" for x_value, y_value in zip(x, y)]
+
+        ax.bar(x, y, color=colors, edgecolor='k', linewidth=2, 
+            label=labels)
+
+        
+        text_str = f"Purity: {purity} \nEfficiency: {eff}"
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        
+        # place a text box in upper left in axes coords
+        ax.text(0.3, 0.95, text_str, transform=ax.transAxes, fontsize=14,
+            verticalalignment='top', bbox=props)
+        
+        ax.set_ylabel("Count", fontsize=14)
+        ax.set_title(f"{wanted_sim} Purity")
+
+        ax.grid(axis='y')
+        ax.tick_params(axis='x', rotation=45)
+        ax.set_axisbelow(True) 
+
+        leg = ax.legend(facecolor='wheat', edgecolor='grey')
+        leg.get_frame().set_alpha(0.5)
+        fig.savefig(f"{wanted_sim}_purity.png")
+        return
+
+    def produce_purity_and_plot(self, hits_list:np.ndarray) -> int:
+        """Extract purity.
+
+        This function will make the purity plot and measure the purity and efficiency of selection.
+
+        Args:
+            hits_list: Nested list of hits for every selected track
+
+        Returns:
+            Plot of the purity and efficiency.
+        """
+
+        type_of_particles = {
+        1: "d", 2: "u", 3: "s", 4: "c", 5: "b", 6: "t",
+        11: "$e^-$", -11: "$e^+$", 12: "$\\nu_e$",
+        13: "$\\mu^-$", -13: "$\\mu^+$", 14: "$\\nu_\\mu$",
+        15: "$\\tau^-$", 16: "$\\nu_\\tau$", 17: "$\\tau'^-$", 18: "$\\nu_\\tau'$",
+        21: "$g$", 211: "$\\pi^{+}$", -211: "$\\pi^{-}$", 111: "$\\pi^0$",
+        2212: "$p$", 2112: "$n$", 22: "$\\gamma$",
+        321: "$K^+$", -321: "$K^-$", 311: "$K^0$", -311: "$\\bar{K}^0$"
+        }
+
+        calib_prompt_hits_bt = self.f['mc_truth/calib_prompt_hit_backtrack/data']
+        trajs = self.f['mc_truth/trajectories/data']
+        segments = self.f['mc_truth/segments/data']
+
+        traj_map = {traj['file_traj_id']:traj for traj in trajs}
+        seg_map = {seg['segment_id']:seg for seg in segments}
+
+        bts = [self.grab_bt(hit_array, calib_prompt_hits_bt) 
+            for hit_array in hits_list]
+
+        #Get trajectory makeup
+        trajectory_makeup = [self.get_traj_makeup
+                            (seg_map, traj_map, bt, segments.dtype) 
+                            for bt in bts]
+        
+        pdgs = [self.get_max_pdg(make) for make in trajectory_makeup]
+        particles, counts = np.unique(pdgs, return_counts=True)
+
+        pdg_makeup = {}
+
+        for p, c in zip(particles, counts):
+            pdg_makeup[p] = c
+
+        purity = self.purity_measurement(pdg_makeup)
+
+        amount_of_selected_muons = pdg_makeup['13'] + pdg_makeup['-13']
+        true_muon_count = Efficiency.detector_eff(self.f)
+        eff = round((amount_of_selected_muons / true_muon_count) * 100, 3)
+        
+        print(f"Efficiency = {eff}")
+        print(f"Purity = {purity}")
+        print("Making Purity plot")
+
+        pdg_makeup = {
+            type_of_particles.get(int(key), key): value
+            for key, value in pdg_makeup.items()
+        }
+
+        integer_makeup = {key:value for key, value in 
+                        pdg_makeup.items() if key.isdigit()}
+        
+        string_makeup = {key:value for key, value in 
+                        pdg_makeup.items() if type(key) == str}
+        
+        string_makeup['else'] = sum(integer_makeup.values())
+
+        pdg_makeup = string_makeup
+
+        sorted_pdg_makeup = dict(
+        sorted(pdg_makeup.items(), key = lambda value: value[1], 
+            reverse=True)
+            )
+        
+        
+        self.make_purity_plot(sorted_pdg_makeup, self.wanted_sim, purity, eff)
+
+        return
+

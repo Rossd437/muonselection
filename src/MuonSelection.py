@@ -8,8 +8,36 @@ import sys
 import Purity
 
 class MuonSelection:
-    def __init__(self, segment_count, track_count, rock_muon_dtype, segment_dtype,
-                 x_boundaries, y_boundaries, z_boundaries, length_cut):
+    """ Muon Selection class.
+
+    This class will provide the functionality to select muon tracks for a given detector geometry.
+
+    Attributes:
+        segment_count: Amount of segments
+        track_count: Amount of tracks
+        length_cut: Minimum length for cluster to be considered a muon
+        rock_muon_dtype: dtype of muon array
+        segment_dtype: dtype of segment array
+        x_boundaries: X boundaries of detector
+        y_boundaries: Y boundaries of detector
+        z_boundaries: Z boundaries of detector
+    """
+    def __init__(self, segment_count:int, track_count:int, length_cut:int,
+                 rock_muon_dtype:np.dtypes.VoidDType, segment_dtype:np.dtypes.VoidDType,
+                 x_boundaries:np.ndarray, y_boundaries:np.ndarray, z_boundaries:np.ndarray):
+        """
+        Initializes a new MuonSelection instance.
+        
+        Args:
+            segment_count: Amount of segments
+            track_count: Amount of tracks
+            length_cut: Minimum length for cluster to be considered a muon
+            rock_muon_dtype: dtype of muon array
+            segment_dtype: dtype of segment array
+            x_boundaries: X boundaries of detector
+            y_boundaries: Y boundaries of detector
+            z_boundaries: Z boundaries of detector
+        """
         self.segment_count = segment_count
         self.track_count = track_count
         self.rock_muon_dtype = rock_muon_dtype
@@ -556,6 +584,7 @@ class MuonSelection:
         f = h5flow.data.H5FlowDataManager(file, 'r')
         
         events = f['charge/events/data']
+
         Min_max_detector_bounds = [[min(self.z_boundaries),min(self.y_boundaries),min(self.x_boundaries)],
                                     [max(self.z_boundaries), max(self.y_boundaries), max(self.x_boundaries)]]
         for event in range(events.size):
@@ -664,7 +693,7 @@ if __name__ == '__main__':
     wanted_sim = hdf5_file_name.split('_')[0]
 
     f = h5flow.data.H5FlowDataManager(file, 'r')
-
+    print(type(f))
     tracks, segments, hits = selection.run(file)
     print('Done w/ selection starting purity calc')
 
@@ -677,5 +706,5 @@ if __name__ == '__main__':
         
     p = Purity.Purity(f, wanted_sim)
 
-    particle_stack = p.loop(hits)
+    particle_stack = p.produce_purity_and_plot(hits)
     
