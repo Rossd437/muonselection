@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import h5flow
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
@@ -584,7 +585,7 @@ class MuonSelection:
         f = h5flow.data.H5FlowDataManager(file, 'r')
         
         events = f['charge/events/data']
-        print(self.x_boundaries, self.y_boundaries, self.z_boundaries)
+        
         Min_max_detector_bounds = [[min(self.z_boundaries),min(self.y_boundaries),min(self.x_boundaries)],
                                     [max(self.z_boundaries), max(self.y_boundaries), max(self.x_boundaries)]]
         for event in range(events.size):
@@ -697,13 +698,16 @@ if __name__ == '__main__':
     tracks, segments, hits = selection.run(file)
     print('Done w/ selection starting purity calc')
 
-    save_tracks_name = hdf5_file_name + '.tracks.npy'
-    save_segments_name = hdf5_file_name + '.segments.npy'
+    save_tracks_name = hdf5_file_name + '.tracks.csv'
+    save_segments_name = hdf5_file_name + '.segments.csv'
 
-    np.save(save_tracks_name, tracks)
-    np.save(save_segments_name, segments)
+    track_df = pd.DataFrame(tracks)
+    segment_df = pd.DataFrame(segments)
 
-        
+    
+    track_df.to_csv(save_tracks_name)
+    segment_df.to_csv(save_segments_name)
+
     p = Purity.Purity(f, wanted_sim)
 
     particle_stack = p.produce_purity_and_plot(hits)
