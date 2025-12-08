@@ -16,6 +16,7 @@ plugins:
 nav:
   - Home: index.md
   - Install and Run: installation.md
+  - How-To-Guides: parsing.md
   - Muon Selection: 
     - Selection Class Overview: muonselection.md
     - Class Initialization: muon_init.md
@@ -52,5 +53,4 @@ nav:
     - Check Point Position: point_outside.md
     - Check Intersection: intersection.md
     - Amount Of True Muons: eff.md
-
-  - About: about.md
+  - References: References.md
