@@ -4,7 +4,7 @@ This repository serves as the code database for the muon selection for the Deep 
 
 The muon selection has 3 parts which are selecting the muon tracks in the 2x2, calculating the purity and the efficiency, and extracting the electron lifetime. The git repository will come with a data file in the data directory, so you are able to run the selection workflow. If you would like more data files you can wget them from [NERSC](https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6_1E19_RHC/MiniRun6_1E19_RHC.flow/FLOW/0000000/). Below is a Data Flow Diagram, showing the data storages, processes, and outputs of the selection. <br>
 
-[Data Flow Diagram](docs/DFD.png)
+[](docs/DFD.png)
 ------
 ## How-To-Run
 Running the selection hopefully should be quick smooth..... considering that everything works properly. The only dependecy you should need to install is snakemake and conda. <br> 
