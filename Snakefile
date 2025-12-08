@@ -4,6 +4,7 @@ rule all:
         "results/csvs/MiniRun6.5_segments.csv",
         "results/plots/MiniRun6.5_purity.png",
         "results/plots/MiniRun6.5_lifetime.png"
+
 rule selection:
     input:
         "data/MiniRun6.5_1E19_RHC.flow.0000433.FLOW.proto_nd_flow.hdf5"
