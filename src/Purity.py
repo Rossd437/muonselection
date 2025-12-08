@@ -123,8 +123,8 @@ class Purity:
         """
         total_amount_tracks = sum(pdg_makeup.values())
         
-        amount_of_muons = pdg_makeup['13'] \
-                        + pdg_makeup['-13']
+        amount_of_muons = pdg_makeup.get('13', 0) \
+                        + pdg_makeup.get('-13', 0)
         
         return round(amount_of_muons/total_amount_tracks, 3) * 100
 
