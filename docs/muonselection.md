@@ -1,2 +1,0 @@
-## Muon Selection
-::: MuonSelection.MuonSelection

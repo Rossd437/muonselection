@@ -1,2 +1,0 @@
-## Purity
-::: Purity.Purity

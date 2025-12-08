@@ -18,7 +18,6 @@ nav:
   - Install and Run: installation.md
   - How-To-Guides: parsing.md
   - Muon Selection: 
-    - Selection Class Overview: muonselection.md
     - Class Initialization: muon_init.md
     - Cluster: cluster.md
     - Test merge condition: merge_cluster.md
@@ -40,7 +39,6 @@ nav:
     - Landau Gaussian Convolution fit: langaufit.md
     - Lifetime Extraction: lifetimefit.md
   - Purity:
-    - Purity Overview: purity.md
     - Purity Initialization: purity_init.md
     - Grab Backtrack Information: grab_bt.md
     - Get Trajectory Makeup: get_traj_makeup.md
