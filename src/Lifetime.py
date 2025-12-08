@@ -4,10 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pylandau
 import warnings
-import os
-import subprocess
-import glob
+import sys
 from typing import Callable
+import pandas as pd
 
 def convolution(hist_a:np.ndarray, edges_a:np.ndarray, hist_b:np.ndarray, edges_b:np.ndarray) -> tuple:
     """Compute the convolution.
@@ -130,19 +129,20 @@ def langau_fit(hist:np.ndarray, bin_centers:np.ndarray) -> tuple:
     return mpv, eta, sigma, A, mpv_uncertainty, mpv_guess
 
 def langau_lifetime(dNdx:np.ndarray, dqdx:np.ndarray, time_drifted:np.ndarray, time_bins:np.ndarray,
-                     dqdx_bins:np.ndarray, dNdx_bins:np.ndarray, wanted_sim:str, plotting=True) -> int:
+                     dqdx_bins:np.ndarray, dNdx_bins:np.ndarray, wanted_sim:str, output_file:str, plotting=True) -> int:
     """Extract the lifetime.
 
     Use the dQ/dx * dN/dx convolution to extract the lifetime.
 
     Args:
-        dNdx: Number of hits per unit length of segment
-        dqdx: Charge per unit length of segment
-        time_drifted: Time drifted of segment
-        time_bins: Time bins
-        dqdx_bins: Bins for dq/dx histogram
-        dNdx_bins: Bins of dN/dx histogram
-        wanted_sim: Simulation of muon selection
+        dNdx: Number of hits per unit length of segment.
+        dqdx: Charge per unit length of segment.
+        time_drifted: Time drifted of segment.
+        time_bins: Time bins.
+        dqdx_bins: Bins for dq/dx histogram.
+        dNdx_bins: Bins of dN/dx histogram.
+        wanted_sim: Simulation of muon selection.
+        output_file: File to save plot.
 
     Returns:
         Nothing, but will save plot of the lifetime.
@@ -222,23 +222,18 @@ def langau_lifetime(dNdx:np.ndarray, dqdx:np.ndarray, time_drifted:np.ndarray, t
 
         ax.legend(edgecolor='black',  fontsize= 8, loc='upper right')
 
-        fig.savefig(f"{wanted_sim}_pylandau_dNdQ.png")
+        fig.savefig(output_file)
 
     
     return 
 
 if __name__ == '__main__':
     warnings.filterwarnings(action='ignore', category=DeprecationWarning)
-    flist = glob.glob('*segments*')
+    file = sys.argv[1]
+    output_file = sys.argv[2]
     
-    segs = []
-    for file in flist:
+    segments = pd.read_csv(file)
 
-        segments = np.load(file)
-        segs.append(segments)
-
-    segments = np.concatenate(segs)
-   
     dNdx = segments['dN']/segments['dx']
     dqdx = segments['dQ']/segments['dx']
     time_drifted = segments['t']
@@ -248,5 +243,5 @@ if __name__ == '__main__':
     dNdx_bins = np.linspace(0, 30, 42)
     wanted_sim = 'MiniRun6.5'
     
-    langau_lifetime(dNdx, dqdx, time_drifted, time_bins, 
-                    dqdx_bins, dNdx_bins, wanted_sim, plotting=True)
+    langau_lifetime(dNdx, dqdx, time_drifted, time_bins, dqdx_bins,
+                    dNdx_bins, wanted_sim, output_file, plotting=True)
