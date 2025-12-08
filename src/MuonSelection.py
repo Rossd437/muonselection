@@ -9,7 +9,7 @@ import sys
 import Purity
 
 class MuonSelection:
-    """ Muon Selection class.
+    """Muon Selection class.
 
     This class will provide the functionality to select muon tracks for a given detector geometry.
 
@@ -690,6 +690,12 @@ if __name__ == '__main__':
     selection = MuonSelection(segment_count, track_count, length_cut, rock_muon_dtype, segment_dtype,
                               x_boundaries, y_boundaries, z_boundaries)
     file = sys.argv[1]
+    track_file = sys.argv[2]
+    
+    segment_file = sys.argv[3]
+    purity_file = sys.argv[4]
+
+
     hdf5_file_name = file.split('/')[-1]
     wanted_sim = hdf5_file_name.split('_')[0]
 
@@ -698,17 +704,13 @@ if __name__ == '__main__':
     tracks, segments, hits = selection.run(file)
     print('Done w/ selection starting purity calc')
 
-    save_tracks_name = hdf5_file_name + '.tracks.csv'
-    save_segments_name = hdf5_file_name + '.segments.csv'
-
     track_df = pd.DataFrame(tracks)
     segment_df = pd.DataFrame(segments)
-
     
-    track_df.to_csv(save_tracks_name)
-    segment_df.to_csv(save_segments_name)
+    track_df.to_csv(track_file)
+    segment_df.to_csv(segment_file)
 
-    p = Purity.Purity(f, wanted_sim)
+    p = Purity.Purity(f, wanted_sim, purity_file)
 
     particle_stack = p.produce_purity_and_plot(hits)
     

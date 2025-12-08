@@ -16,15 +16,17 @@ class Purity:
         f: H5FlowDataManager for hdf5 file.
         wanted_sim: Simulation version
     """
-    def __init__(self, f:h5flow.data.h5flow_data_manager.H5FlowDataManager, wanted_sim:str):
+    def __init__(self, f:h5flow.data.h5flow_data_manager.H5FlowDataManager, wanted_sim:str, purity_file:str):
         """Initializes a new Purity Instance.
 
         Args:
             f: H5FlowDataManager for hdf5 file.
             wanted_sim: Simulation version.
+            purity_files: File to save purity plot.
         """
         self.f = f
         self.wanted_sim = wanted_sim
+        self.purity_file = purity_file
 
     def grab_bt(self, hits: np.ndarray, bt_info:np.ndarray) ->np.ndarray:
         """Return backtrack info for selected track.
@@ -188,7 +190,7 @@ class Purity:
 
         leg = ax.legend(facecolor='wheat', edgecolor='grey')
         leg.get_frame().set_alpha(0.5)
-        fig.savefig(f"{wanted_sim}_purity.png")
+        fig.savefig(self.purity_file)
         return
 
     def produce_purity_and_plot(self, hits_list:np.ndarray) -> int:
