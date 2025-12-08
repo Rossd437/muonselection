@@ -1,0 +1,3 @@
+[submodule "lib/h5flow"]
+	path = lib/h5flow
+	url = https://github.com/larpix/h5flow.git
