@@ -5,7 +5,9 @@ This repository serves as the code database for the muon selection for the Deep 
 The muon selection has 3 parts which are selecting the muon tracks in the 2x2, calculating the purity and the efficiency, and extracting the electron lifetime. The git repository will come with a data file in the data directory, so you are able to run the selection workflow. If you would like more data files you can wget them from [NERSC](https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6_1E19_RHC/MiniRun6_1E19_RHC.flow/FLOW/0000000/). Below is a Data Flow Diagram, showing the data storages, processes, and outputs of the selection. <br>
 
 ![Data Flow Diagram](docs/DFD.png)
+
 ------
+
 ## How-To-Run
 Running the selection hopefully should be quick smooth..... considering that everything works properly. The only dependecy you should need to install is snakemake and conda. <br> 
 First, git clone this repository to your local machine with either or the commands below.<br>
@@ -31,4 +33,24 @@ AAAANNNNND finished!!! There should be plots of the purity, efficiency, and life
 
 -----
 
-tutorials.
+## How To Obtain Track and Segment Information
+
+After you ran the selection, there will be two csv files in the `results/csvs` directory. If you would like to read through these csv files, pandas is the recommended option. You can install pandas in a python virtual environment or conda environment with the commands below. <br>
+
+Python Virtual Environment: `pip install pandas` <br>
+Conda Environment: `conda install conda-forge::pandas` <br>
+
+To load in the csv files,
+
+Load in csv file: `df = pd.read_csv(<file_name>)`
+
+If you would like to now what values are stored in the csv file:
+
+Csv columns: `df.columns`
+
+You can do all kinds of data analysis with these dataframes for examples:
+
+Segment dQ/dx: `df['dQ']/df['dx']`
+Segment dN/dx: `df['dQ']/df['dx']`
+
+and so on. Pretty much just do `df['<column_name>']`.
