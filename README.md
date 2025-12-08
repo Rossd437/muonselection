@@ -16,16 +16,23 @@ For SSH: ```git clone git@github.com:Rossd437/project-CMSE-602.git``` <br>
 For HTTPS: ```git clone https://github.com/Rossd437/project-CMSE-602.git``` <br>
 
 Make sure your change into the correct directory with: <br>
-`cd project-CMSE-602`
+```cd project-CMSE-602```
 
-To install snakemake inside a conda environment please run the command below: <br>
-```conda create -c conda-forge -c bioconda -c nodefaults -n muon_selection_env snakemake```
+Now we can start on the conda environment. There is a script in the `scripts` directory ready to be run that will install all the dependecies for you. Switch to the scripts directory with: <br>
 
-Then run ```conda activate muon_selection_env```
+`cd scripts`
 
-Now that you have snakemake installed into your conda environment, running should go smooth..... hopefully. There is already an environment.yaml file in the git repository that you cloned, and snakemake will automatically run this yaml file when the workflow is run.
+You may need to change the permission to be able to execute the script by running: <br>
 
-To run the complete workflow: <br>
+`chmod 700 install_env.sh`
+
+Then run: <br>
+
+`source install_env.sh`
+
+This will install all the dependencies from conda, such as, python, pip, snakemake, numpy, pandas, matplotlib, scipy, sccikit-learn, and seaborn. It will then activate the conda environment that it just made. After activating the conda environment, it still needs to pip install pylandau and h5flow. After it installs those last two dependencies with pip, your conda environemnt is now setup and activated for you and you will automatically `cd` back to `project-CMSE-602`. 
+
+Now that you have your conda environment, running should go smooth..... hopefully. Since you should already be in the `project-CMSE-602` directory, just run: <br>
 
 ```snakemake --use-conda --cores 1```
 
