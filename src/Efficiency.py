@@ -63,7 +63,7 @@ def check_intersection(traj:np.ndarray, min_bounds:np.ndarray, max_bounds:np.nda
     else:
         return True #Intersect
     
-def detector_eff(f:h5flow.data.h5flow_data_manager.H5FlowDataManager) -> int:
+def count_true_muons(f:h5flow.data.h5flow_data_manager.H5FlowDataManager) -> int:
     """Get amount of true muons.
 
     This function will determine the amount of true through-going muons in the file.
@@ -72,8 +72,7 @@ def detector_eff(f:h5flow.data.h5flow_data_manager.H5FlowDataManager) -> int:
         f: hdf5 file data.
 
     Returns:
-        Amount of true through-going muons in file.
-    
+        Amount of true through-going muons in file. 
     """
     #Detector boundaries
     x_boundaries = np.array([-63.931, -3.069, 3.069, 63.931])
