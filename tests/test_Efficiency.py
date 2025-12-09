@@ -48,5 +48,5 @@ def test_check_intersection(traj, min_bounds, max_bounds):
     assert check_intersection(traj, min_bounds, max_bounds)
 
 
-def test_detector_eff(grab_h5flow_data):
+def test_count_true_muons(grab_h5flow_data):
     assert count_true_muons(grab_h5flow_data) > 0
