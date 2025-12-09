@@ -287,7 +287,7 @@ class Purity:
 
         purity = self.purity_measurement(pdg_makeup)
 
-        amount_of_selected_muons = pdg_makeup["13"] + pdg_makeup["-13"]
+        amount_of_selected_muons = pdg_makeup.get("13", 0) + pdg_makeup.get("-13", 0)
         true_muon_count = Efficiency.count_true_muons(self.f)
         eff = round((amount_of_selected_muons / true_muon_count) * 100, 3)
 
