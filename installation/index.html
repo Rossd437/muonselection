@@ -1381,7 +1381,9 @@ For HTTPS: <code>git clone --recurse-submodules https://github.com/Rossd437/proj
 <p>Then run: <br></p>
 <p><code>source install_env.sh</code></p>
 <p>This will install all the dependencies from conda, such as, python, pip, snakemake, numpy, pandas, matplotlib, scipy, sccikit-learn, and seaborn. It will then activate the conda environment that it just made. After activating the conda environment, it still needs to pip install pylandau and h5flow. After it installs those last two dependencies with pip, your conda environemnt is now setup and activated for you and you will automatically <code>cd</code> back to <code>project-CMSE-602</code>. </p>
-<p>Now that you have your conda environment, running should go smooth..... hopefully. Since you should already be in the <code>project-CMSE-602</code> directory, just run: <br></p>
+<p>Before running snakemake, we will get to wget a file or two to be able to run the selection, please run:
+<code>wget -P data/ https://portal.nersc.gov/project/dune/data/2x2/simulation/productions/MiniRun6.5_1E19_RHC/MiniRun6.5_1E19_RHC.flow/FLOW/0000000/MiniRun6.5_1E19_RHC.flow.0000433.FLOW.hdf5</code> <br></p>
+<p>Now that you have your conda environment and a data file, running should go smooth..... hopefully. Since you should already be in the <code>project-CMSE-602</code> directory, just run: <br></p>
 <p><code>snakemake --cores 1</code></p>
 <p>AAAANNNNND finished!!! There should be plots of the purity, efficiency, and lifetime of the muon selection in a <code>results/plots</code> directory. Also, there should be two csv files of the track and segment information in <code>results/csvs</code>.</p>
 
