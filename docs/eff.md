@@ -1,2 +1,2 @@
 ## Efficiency
-::: Efficiency.detector_eff
+::: Efficiency.count_true_muons
