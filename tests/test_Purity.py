@@ -38,7 +38,6 @@ def test_grab_bt(my_purity, indices):
     assert np.all(hits["id"] == indices)
 
 
-
 @pytest.mark.parametrize(
     "pdg_dict, expected_pdg",
     [({"13": 0.9, "11": 0.1}, "13"), ({"13": 0.3, "-14": 0.6, "2": 0.1}, "-14")],
