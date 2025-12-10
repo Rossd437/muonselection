@@ -2,8 +2,8 @@
 
 Before creating a conda environment, you will need to clone the github repository to your local machine with the command below. <br>
 
-For SSH: ```git clone git@github.com:Rossd437/project-CMSE-602.git``` <br>
-For HTTPS: ```git clone https://github.com/Rossd437/project-CMSE-602.git```
+For SSH: ```git clone --recurse-submodules git@github.com:Rossd437/project-CMSE-602.git``` <br>
+For HTTPS: ```git clone --recurse-submodules https://github.com/Rossd437/project-CMSE-602.git```
 
 Make sure your change into the correct directory with: <br>
 ```cd project-CMSE-602```
