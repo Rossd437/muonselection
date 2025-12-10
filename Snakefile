@@ -7,7 +7,7 @@ rule all:
 
 rule selection:
     input:
-        "data/MiniRun6.5_1E19_RHC.flow.0000433.FLOW.proto_nd_flow.hdf5"
+        "data/MiniRun6.5_1E19_RHC.flow.0000433.FLOW.hdf5"
     output:
         "results/csvs/MiniRun6.5_tracks.csv",
         "results/csvs/MiniRun6.5_segments.csv",
