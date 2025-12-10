@@ -162,7 +162,12 @@ class Purity:
         return random_colors
 
     def make_purity_plot(
-        self, sorted_pdg_makeup: dict, wanted_sim: str, purity: float, eff: float, output_file:str
+        self,
+        sorted_pdg_makeup: dict,
+        wanted_sim: str,
+        purity: float,
+        eff: float,
+        output_file: str,
     ) -> int:
         """Make Purity Plot.
 
@@ -316,6 +321,12 @@ class Purity:
             sorted(pdg_makeup.items(), key=lambda value: value[1], reverse=True)
         )
 
-        self.make_purity_plot(sorted_pdg_makeup, self.wanted_sim, purity, eff, output_file=self.purity_file)
+        self.make_purity_plot(
+            sorted_pdg_makeup,
+            self.wanted_sim,
+            purity,
+            eff,
+            output_file=self.purity_file,
+        )
 
         return
