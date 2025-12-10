@@ -12,8 +12,8 @@ The muon selection has 3 parts which are selecting the muon tracks in the 2x2, c
 Running the selection hopefully should be quick smooth..... considering that everything works properly. The only dependecy you should need to install is snakemake and conda. <br> 
 First, git clone this repository to your local machine with either or the commands below.<br>
 
-For SSH: ```git clone git@github.com:Rossd437/project-CMSE-602.git``` <br>
-For HTTPS: ```git clone https://github.com/Rossd437/project-CMSE-602.git``` <br>
+For SSH: ```git clone --recurse-submodules git@github.com:Rossd437/project-CMSE-602.git``` <br>
+For HTTPS: ```git clone --recurse-submodules https://github.com/Rossd437/project-CMSE-602.git``` <br>
 
 Make sure your change into the correct directory with: <br>
 ```cd project-CMSE-602```
@@ -34,9 +34,10 @@ This will install all the dependencies from conda, such as, python, pip, snakema
 
 Now that you have your conda environment, running should go smooth..... hopefully. Since you should already be in the `project-CMSE-602` directory, just run: <br>
 
-```snakemake --use-conda --cores 1```
+```snakemake --cores 1```
 
 AAAANNNNND finished!!! There should be plots of the purity, efficiency, and lifetime of the muon selection in a ```results/plots``` directory. Also, there should be two csv files of the track and segment information in ```results/csvs```.
+
 
 -----
 
